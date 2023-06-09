@@ -2,39 +2,46 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerMovement : MonoBehaviour
-{
-    public float moveSpeed = 5.0f;
-    public float gravity = 9.81f;
-    public float jumpForce = 7.0f;
-    private Vector3 moveDirection = Vector3.zero;
+public class PlayerMovement : MonoBehaviour {
+    private float speed = 5f;
+    private float jumpForce = 10f;
+    private float rotateSpeed = 180f;
+    private bool isGrounded = true;
+    private float rotation;
+    
+    public Transform groundCheck;
+    public LayerMask groundLayer;
 
-    private CharacterController controller;
-    private Transform cameraTransform;
+    private Rigidbody rb;
+    private Vector3 movement;
 
-    private void Start()
-    {
-        controller = GetComponent<CharacterController>();
-        cameraTransform = Camera.main.transform;
+    private void Start() {
+        rb = GetComponent<Rigidbody>();
     }
 
-    private void Update()
-    {
-        Vector3 moveInput = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-        Vector3 cameraForward = new Vector3(cameraTransform.forward.x, 0, cameraTransform.forward.z).normalized;
-
-        moveDirection = cameraForward * moveInput.z + cameraTransform.right * moveInput.x;
-        moveDirection *= moveSpeed;
+    private void Update() {
+        float moveRotation = Input.GetAxis("Horizontal");
+        float moveVertical = Input.GetAxis("Vertical");
         
-        if (controller.isGrounded && Input.GetButton("Jump"))
-        {
-            moveDirection.y = jumpForce;
+        rotation += moveRotation * rotateSpeed * Time.deltaTime;
+
+        if (Input.GetKey(KeyCode.W)) {
+            movement = transform.forward.normalized;
+        } else if (Input.GetKey(KeyCode.S)) {
+            movement = -transform.forward.normalized;
         }
 
-        // Apply gravity
-        moveDirection.y -= gravity * Time.deltaTime;
+        isGrounded = Physics.CheckSphere(groundCheck.position, 0.1f, groundLayer);
 
-        // Move the controller
-        controller.Move(moveDirection * Time.deltaTime);
+        if (isGrounded && Input.GetButtonDown("Jump"))
+        {
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        }
+    }
+
+    private void FixedUpdate() {
+        rb.MoveRotation(Quaternion.Euler(0f, rotation, 0f));
+        rb.MovePosition(rb.position + movement * speed * Time.fixedDeltaTime);
     }
 }
+
